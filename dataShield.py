@@ -25,7 +25,13 @@ import sys
 import time
 
 from engine import get_engine
-
+from convert import (
+    ConvertError,
+    export_to_sqlite,
+    diff_tables,
+    convert_csv_to_json,
+    convert_json_to_csv,
+)
 
 # ============================================================
 # TERMINAL COLORS
@@ -819,6 +825,260 @@ def repair_file(path, output_path):
 
 
 # ============================================================
+# CONVERT COMMAND
+# ============================================================
+
+def convert_to_sqlite(path, db_path, manifest_path, sample_size):
+    """Run convert --to sqlite and print a versioned-export summary."""
+
+    print_banner()
+
+    print(
+        f"  {color(SHIELD, Color.CYAN)} "
+        f"{color('DataShield Convert', Color.BOLD + Color.WHITE)}"
+    )
+
+    print()
+
+    print_status("Input", get_filename(path))
+    print_status("Target", color("SQLite", Color.CYAN))
+    print_status("Database", db_path)
+
+    print()
+
+    spinner(f"Inferring types & exporting {get_filename(path)}...")
+
+    try:
+        result = export_to_sqlite(path, db_path, manifest_path, sample_size)
+
+    except ConvertError as error:
+        print()
+        print(f"  {color(CROSS, Color.RED)} {color(str(error), Color.RED)}")
+        print()
+        return 1
+
+    except Exception as error:
+        print()
+        print(f"  {color(CROSS, Color.RED)} {color('Export failed:', Color.RED)} {error}")
+        print()
+        return 1
+
+    print_section("SCHEMA")
+
+    for col_name, sql_type in result.columns.items():
+        print_status(col_name, color(sql_type, Color.CYAN))
+
+    print_section("VERSIONING")
+
+    print_status("Dataset", result.dataset)
+    print_status("Table", color(result.table, Color.GREEN))
+    print_status("Version", str(result.version))
+    print_status(
+        "Parent",
+        result.parent_table if result.parent_table else color("none", Color.DIM),
+    )
+    print_status("Rows", str(result.record_count))
+    print_status("Content hash", result.content_hash[:16] + "…")
+
+    print()
+
+    if result.unchanged:
+        print(
+            f"  {color(WARN, Color.YELLOW)} "
+            f"{color('Content identical to the previous version — new version created anyway.', Color.YELLOW)}"
+        )
+    else:
+        print(
+            f"  {color(CHECK, Color.GREEN)} "
+            f"{color(f'Exported {result.record_count} row(s) into ' + result.table, Color.GREEN)}"
+        )
+
+    print()
+
+    return 0
+
+
+def convert_to_flat_format(path, to_format, output_path):
+    """Run convert --to json/csv."""
+
+    print_banner()
+
+    print(
+        f"  {color(SHIELD, Color.CYAN)} "
+        f"{color('DataShield Convert', Color.BOLD + Color.WHITE)}"
+    )
+
+    print()
+
+    print_status("Input", get_filename(path))
+    print_status("Target", color(to_format.upper(), Color.CYAN))
+    print_status("Output", get_filename(output_path))
+
+    print()
+
+    spinner(f"Converting to {to_format.upper()}...")
+
+    try:
+        if to_format == "json":
+            count, report = convert_csv_to_json(path, output_path)
+        else:
+            count, report = convert_json_to_csv(path, output_path)
+
+    except ConvertError as error:
+        print()
+        print(f"  {color(CROSS, Color.RED)} {color(str(error), Color.RED)}")
+        print()
+        return 1
+
+    except Exception as error:
+        print()
+        print(f"  {color(CROSS, Color.RED)} {color('Conversion failed:', Color.RED)} {error}")
+        print()
+        return 1
+
+    print_section("OUTPUT")
+
+    print_status("File", get_filename(output_path))
+    print_status("Size", get_file_size(output_path))
+    print_status("Records", str(count))
+    print_status("Status", color("READY", Color.GREEN))
+
+    print()
+
+    print(
+        f"  {color(CHECK, Color.GREEN)} "
+        f"{color(f'Converted {count} record(s) to {to_format.upper()}.', Color.GREEN)}"
+    )
+
+    print()
+
+    return 0
+
+
+def convert_file(path, args):
+    """Dispatch convert --to {sqlite,json,csv}."""
+
+    if args.to == "sqlite":
+        return convert_to_sqlite(
+            path,
+            args.db,
+            args.manifest,
+            args.sample,
+        )
+
+    output_path = args.output
+
+    if not output_path:
+        stem = os.path.splitext(path)[0]
+        output_path = f"{stem}.{args.to}"
+
+    if os.path.abspath(path) == os.path.abspath(output_path):
+        print_banner()
+        print(
+            f"  {color(CROSS, Color.RED)} "
+            f"{color('Input and output files must be different.', Color.RED)}"
+        )
+        print()
+        return 1
+
+    return convert_to_flat_format(path, args.to, output_path)
+
+
+# ============================================================
+# DIFF COMMAND
+# ============================================================
+
+def diff_versions(db_path, table_a, table_b, key):
+    """Compare two versioned SQLite tables by primary key."""
+
+    print_banner()
+
+    print(
+        f"  {color(SHIELD, Color.CYAN)} "
+        f"{color('DataShield Diff', Color.BOLD + Color.WHITE)}"
+    )
+
+    print()
+
+    print_status("Database", db_path)
+    print_status("From", color(table_a, Color.CYAN))
+    print_status("To", color(table_b, Color.CYAN))
+    print_status("Key", key)
+
+    print()
+
+    if not os.path.isfile(db_path):
+        print(f"  {color(CROSS, Color.RED)} {color('Database not found:', Color.RED)} {db_path}")
+        print()
+        return 1
+
+    spinner(f"Diffing {table_a} → {table_b}...")
+
+    try:
+        result = diff_tables(db_path, table_a, table_b, key)
+
+    except ConvertError as error:
+        print()
+        print(f"  {color(CROSS, Color.RED)} {color(str(error), Color.RED)}")
+        print()
+        return 1
+
+    except Exception as error:
+        print()
+        print(f"  {color(CROSS, Color.RED)} {color('Diff failed:', Color.RED)} {error}")
+        print()
+        return 1
+
+    print_section(f"ADDED ({len(result.added)})")
+
+    if not result.added:
+        print(f"  {color(DIM_DASH := '—', Color.DIM)} none")
+    else:
+        for row in result.added:
+            print(f"  {color('+', Color.GREEN)} {key}={row[key]}  {row}")
+
+    print_section(f"REMOVED ({len(result.removed)})")
+
+    if not result.removed:
+        print(f"  {color('—', Color.DIM)} none")
+    else:
+        for row in result.removed:
+            print(f"  {color('-', Color.RED)} {key}={row[key]}  {row}")
+
+    print_section(f"MODIFIED ({len(result.modified)})")
+
+    if not result.modified:
+        print(f"  {color('—', Color.DIM)} none")
+    else:
+        for key_value, changes in result.modified:
+            print(f"  {color('~', Color.YELLOW)} {key}={key_value}")
+            for field, old, new in changes:
+                print(
+                    f"      {color(field, Color.CYAN)}: "
+                    f"{color(str(old), Color.RED)} {ARROW} {color(str(new), Color.GREEN)}"
+                )
+
+    print()
+
+    print_section("SUMMARY")
+
+    print_status("Added", color(str(len(result.added)), Color.GREEN if result.added else Color.DIM))
+    print_status("Removed", color(str(len(result.removed)), Color.RED if result.removed else Color.DIM))
+    print_status("Modified", color(str(len(result.modified)), Color.YELLOW if result.modified else Color.DIM))
+
+    print()
+
+    if result.has_changes:
+        print(f"  {color(WARN, Color.YELLOW)} {color('Differences found between versions.', Color.YELLOW)}")
+    else:
+        print(f"  {color(CHECK, Color.GREEN)} {color('No differences — tables are identical.', Color.GREEN)}")
+
+    print()
+
+    return 0
+
+
+# ============================================================
 # ARGUMENT PARSER
 # ============================================================
 
@@ -891,6 +1151,92 @@ def build_parser():
         help="Path where the repaired file will be written.",
     )
 
+    # ========================================================
+    # CONVERT
+    # ========================================================
+
+    convert_parser = subparsers.add_parser(
+        "convert",
+        help="Convert a file to SQLite, JSON, or CSV.",
+        description=(
+            "Convert CSV/JSON data to a versioned SQLite table, "
+            "or between CSV and JSON."
+        ),
+    )
+
+    convert_parser.add_argument(
+        "file",
+        help="Path to the input file (.csv, .json, or .jsonc).",
+    )
+
+    convert_parser.add_argument(
+        "--to",
+        required=True,
+        choices=["sqlite", "json", "csv"],
+        help="Target format.",
+    )
+
+    convert_parser.add_argument(
+        "--db",
+        default="data.db",
+        help="SQLite database path (used with --to sqlite). Default: data.db",
+    )
+
+    convert_parser.add_argument(
+        "--manifest",
+        default=None,
+        help="manifest.json path (used with --to sqlite). Default: alongside --db",
+    )
+
+    convert_parser.add_argument(
+        "--sample",
+        type=int,
+        default=100,
+        help="Rows sampled for type inference (used with --to sqlite). Default: 100",
+    )
+
+    convert_parser.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="Output path (used with --to json/csv). Default: <input>.<ext>",
+    )
+
+    # ========================================================
+    # DIFF
+    # ========================================================
+
+    diff_parser = subparsers.add_parser(
+        "diff",
+        help="Compare two versioned SQLite tables by primary key.",
+        description=(
+            "Report added, removed, and modified rows between two "
+            "versioned tables (e.g. users_v1 vs users_v2)."
+        ),
+    )
+
+    diff_parser.add_argument(
+        "table_a",
+        help="Older/base table name, e.g. users_v1.",
+    )
+
+    diff_parser.add_argument(
+        "table_b",
+        help="Newer table name to compare against, e.g. users_v2.",
+    )
+
+    diff_parser.add_argument(
+        "--db",
+        default="data.db",
+        help="SQLite database path. Default: data.db",
+    )
+
+    diff_parser.add_argument(
+        "--key",
+        required=True,
+        help="Primary-key column used to match rows across tables.",
+    )
+
     return parser
 
 
@@ -929,22 +1275,24 @@ def main():
         return 0
 
     # ========================================================
-    # INPUT VALIDATION
+    # INPUT VALIDATION (commands that take a `file` positional)
     # ========================================================
 
-    if not os.path.isfile(args.file):
+    if args.command in ("inspect", "repair", "convert"):
 
-        print_banner()
+        if not os.path.isfile(args.file):
 
-        print(
-            f"  {color(CROSS, Color.RED)} "
-            f"{color('File not found:', Color.RED)} "
-            f"{args.file}"
-        )
+            print_banner()
 
-        print()
+            print(
+                f"  {color(CROSS, Color.RED)} "
+                f"{color('File not found:', Color.RED)} "
+                f"{args.file}"
+            )
 
-        return 1
+            print()
+
+            return 1
 
     # ========================================================
     # INSPECT
@@ -981,6 +1329,30 @@ def main():
         return repair_file(
             args.file,
             args.output,
+        )
+
+    # ========================================================
+    # CONVERT
+    # ========================================================
+
+    if args.command == "convert":
+
+        return convert_file(
+            args.file,
+            args,
+        )
+
+    # ========================================================
+    # DIFF
+    # ========================================================
+
+    if args.command == "diff":
+
+        return diff_versions(
+            args.db,
+            args.table_a,
+            args.table_b,
+            args.key,
         )
 
     return 0

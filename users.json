@@ -1,0 +1,82 @@
+[
+  {
+    "id": "1",
+    "name": "Alice Johnson",
+    "age": "29",
+    "email": "alice.johnson@example.com",
+    "city": "New York",
+    "email_2": "alice.johnson@example.com"
+  },
+  {
+    "id": "2",
+    "name": "Bob Smith",
+    "age": "34",
+    "email": "bob.smith@example.com",
+    "city": "Los Angeles",
+    "email_2": "bob.smith@example.com"
+  },
+  {
+    "id": "3",
+    "name": "Carol Davis",
+    "age": "41",
+    "email": "carol.davis@example.com",
+    "city": "Chicago",
+    "email_2": null
+  },
+  {
+    "id": "4",
+    "name": "David Lee",
+    "age": "26",
+    "email": "david.lee@example.com",
+    "city": "Houston",
+    "email_2": "david.lee@example.com"
+  },
+  {
+    "id": "5",
+    "name": "Emma Wilson",
+    "age": null,
+    "email": "emma.wilson@example.com",
+    "city": "Phoenix",
+    "email_2": "emma.wilson@example.com"
+  },
+  {
+    "id": "6",
+    "name": "Frank Miller",
+    "age": "45",
+    "email": "frank.miller@example.com",
+    "city": "Philadelphia",
+    "email_2": "frank.miller@example.com,remote"
+  },
+  {
+    "id": "7",
+    "name": "Grace Taylor",
+    "age": "31",
+    "email": "grace.taylor@example.com",
+    "city": "San Antonio",
+    "email_2": "grace.taylor@example.com"
+  },
+  {
+    "id": "8",
+    "name": "Henry Clark",
+    "age": "23",
+    "email": "henry.clark@example.com",
+    "city": "San Diego",
+    "email_2": "henry.clark@example.com"
+  },
+  {
+    "id": "9",
+    "name": "Ivy Martinez",
+    "age": "38",
+    "email": "ivy.martinez@example.com",
+    "city": "Dallas",
+    "email_2": "ivy.martinez@example.com"
+  },
+  {
+    "id": "10",
+    "name": "Jackie Anderson",
+    "age": "27",
+    "email": "jack.anderson@example.com",
+    "city": "Austin\n",
+    "email_2": null
+  }
+]

@@ -369,6 +369,45 @@ class CSVEngine(Engine):
 
         raw_rows = self._parse_core(content, report)
 
+        # _parse_core() always recovers a usable value for these two issue
+        # kinds (it never raises) — it just also flags them as Issues while
+        # doing so. Since repair() actually keeps that recovered value in the
+        # output, these are repairs, not remaining problems. Promote them to
+        # Corrections instead of leaving them as unresolved errors/warnings.
+        remaining_issues = []
+
+        for issue in report.issues:
+
+            if issue.kind == "unclosed_quoted_field":
+                report.add_correction(
+                    Correction(
+                        issue.line,
+                        "closed_unclosed_quote",
+                        (
+                            "Closed a quoted field that ran to "
+                            "end-of-file, using the remaining text "
+                            "as its content"
+                        ),
+                    )
+                )
+
+            elif issue.kind == "malformed_quoting":
+                report.add_correction(
+                    Correction(
+                        issue.line,
+                        "recovered_malformed_quoting",
+                        (
+                            "Recovered a field with an unexpected "
+                            "character immediately after a closing quote"
+                        ),
+                    )
+                )
+
+            else:
+                remaining_issues.append(issue)
+
+        report.issues = remaining_issues
+
         if not raw_rows:
             self.serialize([], output_path)
             return report
@@ -1383,12 +1422,8 @@ class JSONEngine(Engine):
         )
 
         # Record repairs that the parser can safely normalize.
-        existing_issue_kinds = [
-            issue.kind
-            for issue in report.issues
-        ]
-
         comment_lines = set()
+        remaining_issues = []
 
         for issue in report.issues:
 
@@ -1406,6 +1441,8 @@ class JSONEngine(Engine):
                     )
                 )
 
+                remaining_issues.append(issue)
+
             elif issue.kind == "trailing_comma":
 
                 report.add_correction(
@@ -1418,6 +1455,30 @@ class JSONEngine(Engine):
                         ),
                     )
                 )
+
+                remaining_issues.append(issue)
+
+            elif issue.kind == "unterminated_string":
+
+                # The tokenizer always recovers a usable value here (the
+                # text up to the line break becomes the string's content),
+                # so this is a repair, not a remaining error.
+                report.add_correction(
+                    Correction(
+                        issue.line,
+                        "closed_unterminated_string",
+                        (
+                            "Closed a string literal that was missing "
+                            "its closing quote, using the text up to "
+                            "the line break as its content"
+                        ),
+                    )
+                )
+
+            else:
+                remaining_issues.append(issue)
+
+        report.issues = remaining_issues
 
         # Calculate actual nesting balance from tokens.
         brace_depth = 0
@@ -1456,6 +1517,15 @@ class JSONEngine(Engine):
                 )
             )
 
+            # The correction above is exactly what resolves any
+            # "unterminated_object" errors the parser raised, so they're
+            # no longer unresolved problems.
+            report.issues = [
+                issue
+                for issue in report.issues
+                if issue.kind != "unterminated_object"
+            ]
+
         if bracket_depth > 0:
 
             report.add_correction(
@@ -1468,6 +1538,13 @@ class JSONEngine(Engine):
                     ),
                 )
             )
+
+            # Same reasoning for arrays.
+            report.issues = [
+                issue
+                for issue in report.issues
+                if issue.kind != "unterminated_array"
+            ]
 
         # Write normalized strict JSON.
         self.serialize(
