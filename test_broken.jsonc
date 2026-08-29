@@ -1,0 +1,9 @@
+{
+  "project": "dataShield", // Inline Comment Here
+  "status": "active",
+  /* Multi-line comment blocks
+     describing the team tracking arrays */
+  "features": [
+    "csv",
+    "json",
+  ]

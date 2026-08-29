@@ -1,0 +1,31 @@
+Continuing my hackathon project: dataShield — a Python CLI tool (standard 
+library only, no pip packages) that inspects, repairs, and converts messy 
+CSV/JSON files, with SQLite export as a stretch goal.
+
+Phase 1 is done and attached (dataShield.py, engine.py, report.py):
+- argparse CLI with inspect/repair/convert subcommands
+- Shared Issue/Report/Correction classes
+- Engine interface (parse/repair/serialize) with a placeholder engine 
+  wired in for .csv/.json
+
+We have only ~10-12 hours total for the whole build (not the original 
+3-day plan), team of 2, neither of us knows CLI/Python well — you're 
+driving. Please build Phase 2 now: a real CSV engine.
+
+Requirements for the CSV engine (from our locked plan):
+- Character-by-character state machine parser (not the csv module) — 
+  states like FieldStart, InQuotedField, InUnquotedField, 
+  QuoteInQuotedField, AfterField
+- Detect: unclosed quoted fields, ragged rows (inconsistent column 
+  count), duplicate headers, empty required fields — return these as 
+  Issue objects
+- Repair modes: pad missing fields, merge excess fields into last 
+  column, normalize line endings, rename duplicate headers 
+  (email, email_2) — track each fix as a Correction
+- Subclass the existing Engine interface and register it in 
+  EXTENSION_MAP for .csv in engine.py
+
+Test it against a deliberately broken sample CSV before showing me, and 
+give me a 30-second plain-English explanation of what it does for 
+judging. Keep this response focused on just Phase 2 — don't start JSON 
+or SQLite yet.
