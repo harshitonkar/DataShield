@@ -1,0 +1,25 @@
+[project]
+name = "dataShield"
+language = "python"
+runtime = "python3 (standard library only)"
+
+[track]
+# Track B — Parsers & Data Formats. dataShield's core is a hand-written
+# CSV state machine and JSON/JSONC tokenizer/parser (no `csv` module, no
+# `json.loads` for the broken-input path) that reports every issue with
+# line:column position info and is proven against test_broken.csv /
+# test_broken.jsonc — a direct match to Track B's stated criteria.
+letter = "B"
+
+[pitch]
+# TODO: replace with your own one-line pitch, or keep this if it fits —
+# it's an honest one-line description of what's actually built.
+summary = "A CLI with a hand-written CSV Engine and JSON/JSONC Engine that inspects and repairs broken files, then converts CSV to SQLite3 (versioned, diffable), CSV to JSON, and JSON to CSV — no third-party library touches the data at any point."
+[dependencies]
+count = 0
+manifest = "requirements.txt"
+proof = "deps-proof.txt"
+
+[entry_point]
+build = "make demo"
+run = "python dataShield.py --help"

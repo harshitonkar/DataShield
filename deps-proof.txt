@@ -1,0 +1,51 @@
+dataShield — Zero-Dependency Proof
+Generated: 2026-08-30 12:15:38 UTC
+============================================================
+
+Python version: 3.12.3 (main, Mar  3 2026, 12:15:18) [GCC 13.3.0]
+Checking files:  dataShield.py, engine.py, convert.py, report.py
+
+--- dataShield.py ---
+  argparse             STANDARD LIBRARY
+  convert              LOCAL PROJECT MODULE
+  engine               LOCAL PROJECT MODULE
+  os                   STANDARD LIBRARY
+  sys                  STANDARD LIBRARY
+  time                 STANDARD LIBRARY
+
+--- engine.py ---
+  abc                  STANDARD LIBRARY
+  enum                 STANDARD LIBRARY
+  json                 STANDARD LIBRARY
+  os                   STANDARD LIBRARY
+  re                   STANDARD LIBRARY
+  report               LOCAL PROJECT MODULE
+
+--- convert.py ---
+  datetime             STANDARD LIBRARY
+  engine               LOCAL PROJECT MODULE
+  hashlib              STANDARD LIBRARY
+  json                 STANDARD LIBRARY
+  os                   STANDARD LIBRARY
+  re                   STANDARD LIBRARY
+  sqlite3              STANDARD LIBRARY
+
+--- report.py ---
+  dataclasses          STANDARD LIBRARY
+  enum                 STANDARD LIBRARY
+
+============================================================
+RESULT: PASS — every import is either the Python standard
+library or this project's own local modules. Zero
+third-party dependencies detected.
+
+============================================================
+Supplementary check: pip is not imported or invoked anywhere
+in the source, and no requirements.txt entries exist.
+============================================================
+
+$ grep -rn 'pip' *.py
+(no matches — 'pip' does not appear anywhere in the source)
+
+$ cat requirements.txt
+(empty — see requirements.txt in this submission)

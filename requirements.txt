@@ -1,0 +1,8 @@
+# dataShield — Python dependency manifest
+#
+# This file is intentionally empty. dataShield uses only modules from
+# the Python standard library (see STDLIB.md for the full list and the
+# reasoning behind each choice). No `pip install` is required to run
+# any part of this project.
+#
+# Verified automatically — see deps-proof.txt for the reproducible check.
